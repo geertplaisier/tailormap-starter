@@ -27,6 +27,7 @@
               "projects/app/src/assets"
             ],
             "styles": [
+              "projects/app/src/custom-theme.scss",
               "projects/app/src/styles.css"
             ],
             "scripts": []
@@ -73,6 +74,9 @@
             "development": {
               "browserTarget": "app:build:development"
             }
+          },
+          "options": {
+            "proxyConfig": "proxy.config.json"
           },
           "defaultConfiguration": "development"
         },

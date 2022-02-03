@@ -1,0 +1,10 @@
+{
+  "/api/*":{
+    "target":"https://snapshot.tailormap.nl",
+    "secure": false,
+    "logLevel": "info",
+    "headers": {
+      "Host" : "snapshot.tailormap.nl"
+    }
+  }
+}
