@@ -1,0 +1,9 @@
+.git
+.angular
+.idea
+config
+coverage
+dist
+node_modules
+docker
+.angular
