@@ -24,11 +24,15 @@
             "tsConfig": "projects/app/tsconfig.app.json",
             "assets": [
               "projects/app/src/favicon.ico",
-              "projects/app/src/assets"
+              {
+                "glob": "**/*",
+                "input": "node_modules/@tailormap-viewer/core/assets",
+                "output": "assets/core"
+              }
             ],
             "styles": [
-              "projects/app/src/custom-theme.scss",
-              "projects/app/src/styles.css"
+              "node_modules/@tailormap-viewer/core/assets/custom-theme.scss",
+              "node_modules/@tailormap-viewer/core/assets/tailormap-styles.css"
             ],
             "scripts": []
           },
