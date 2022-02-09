@@ -4,7 +4,7 @@ version: '3.9'
 
 services:
   web:
-    container_name: tailormap-${NAME:?required}
+    image: ${NAME:?required}:${VERSION_TAG:-snapshot}
     build:
       context: .
     profiles:
@@ -21,7 +21,7 @@ services:
 
   # The same as web, but without port 80 exposed and with labels for using with Traefik as a reverse proxy.
   web-proxied:
-    container_name: tailormap-${NAME:?required}
+    image: ${NAME:?required}:${VERSION_TAG:-snapshot}
     build:
       context: .
     profiles:
@@ -34,7 +34,7 @@ services:
       - "ADMIN_PROXY_URL=${ADMIN_PROXY_URL}"
       - "ADMIN_PROXY_HOST=${ADMIN_PROXY_HOST}"
     labels:
-      - "traefik.http.routers.tailormap-${NAME:?required}.rule=Host(`${HOSTNAME:?required}`)"
-      - "traefik.http.routers.tailormap-${NAME:?required}.tls=true"
-      - "traefik.http.routers.tailormap-${NAME:?required}.tls.certresolver=letsencrypt"
-      - "traefik.http.services.tailormap-${NAME:?required}.loadbalancer.server.port=80"
+      - "traefik.http.routers.${NAME}-${VERSION_TAG:-snapshot}.rule=Host(`${HOSTNAME:-localhost}`) && PathPrefix(`${BASE_HREF:-/}`)"
+      - "traefik.http.routers.${NAME}-${VERSION_TAG:-snapshot}.tls=true"
+      - "traefik.http.routers.${NAME}-${VERSION_TAG:-snapshot}.tls.certresolver=letsencrypt"
+      - "traefik.http.services.${NAME}-${VERSION_TAG:-snapshot}.loadbalancer.server.port=80"

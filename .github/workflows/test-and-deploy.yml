@@ -1,0 +1,151 @@
+name: Test and deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize]
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          # Keep this in sync with Dockerfile version
+          node-version: 16.13.2
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      - name: Install
+        run: npm install
+      - name: Lint
+        run: npm run lint
+
+  test:
+    name: Test
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          # Keep this in sync with Dockerfile version
+          node-version: 16.13.2
+      - uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      - name: Install
+        run: npm install
+      - name: Test
+        run: npm run test:ci
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v1
+        if: always()
+        with:
+          files: junit.xml
+
+  build:
+    name: Build Docker image
+    # Do not use ubuntu-latest because of Docker compose version, see https://github.com/docker/compose/issues/7686
+    runs-on: ubuntu-18.04
+    env:
+      VERSION_TAG: snapshot
+      BASE_HREF: /
+      DEPLOY: ${{ secrets.DEPLOY }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: GitHub Slug Action
+        uses: rlespinasse/github-slug-action@4.0.0
+      - name: Find Current Pull Request
+        uses: jwalton/gh-find-current-pr@v1.2.1
+        id: find-pr
+      - name: Set variables for PR
+        # When running on a PR, build and tag the Docker image for a deployment with a base-href for deployment of the
+        # web container only on a sub-path
+        if: ${{ success() && steps.find-pr.outputs.number }}
+        env:
+          PR: ${{ steps.find-pr.outputs.number }}
+        run: |
+          echo "VERSION_TAG=pr-${PR}" >> $GITHUB_ENV
+          echo "BASE_HREF=/pull-request/${PR}/${GITHUB_REF_NAME_SLUG_URL}/" >> $GITHUB_ENV
+      - name: Set image name
+        run: echo "NAME=ghcr.io/${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+      - name: Build and tag docker image
+        run: docker-compose build web
+      - name: Log in to GitHub container registry
+        if: env.DEPLOY == 'true'
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Push image to registry
+        if: env.DEPLOY == 'true'
+        run: docker-compose push web
+
+  check_deploy:
+    name: Check if deployments are enabled
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.check_deploy.outputs.deploy }}
+    steps:
+      - name: Check if DEPLOY secret is set
+        id: check_deploy
+        env:
+          DEPLOY: ${{ secrets.DEPLOY }}
+        run: |
+          echo "Deployment enabled: ${{ env.DEPLOY == 'true' }}"
+          echo "::set-output name=deploy::${{ env.DEPLOY == 'true' }}"
+
+  deploy:
+    name: Deploy
+    needs: [build, check_deploy]
+    if: needs.check_deploy.outputs.deploy == 'true'
+    # Do not use ubuntu-latest because of Docker compose version, see https://github.com/docker/compose/issues/7686
+    runs-on: ubuntu-18.04
+    env:
+      NAME: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}
+      HOSTNAME: ${{ secrets.HOSTNAME }}
+      API_PROXY_ENABLED: true
+      API_PROXY_URL: ${{ secrets.API_PROXY_URL }}
+      API_PROXY_HOST: ${{ secrets.API_PROXY_HOST }}
+      VERSION_TAG: snapshot
+    steps:
+      - name: Find Current Pull Request
+        uses: jwalton/gh-find-current-pr@v1.2.1
+        id: find-pr
+      - name: Set variables for PR # Copied from build job -- maybe use job output?
+        # When running on a PR, use the PR number in the container image tag and for the Docker Compose project name
+        if: ${{ success() && steps.find-pr.outputs.number }}
+        env:
+          PR: ${{ steps.find-pr.outputs.number }}
+        run: |
+          echo "VERSION_TAG=pr-${PR}" >> $GITHUB_ENV
+      - uses: arwynfr/actions-docker-context@v2
+        name: Set Docker context for deployment
+        with:
+          docker_host: ${{ secrets.DOCKER_HOST_SNAPSHOT }}
+          context_name: 'dev-server'
+          ssh_cert: ${{ secrets.DOCKER_HOST_SNAPSHOT_SSH_CERT }}
+          ssh_key: ${{ secrets.DOCKER_HOST_SNAPSHOT_SSH_KEY }}
+          use_context: true
+      - name: Set image name
+        run: echo "NAME=ghcr.io/${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
+      - name: Update deployment using Docker Compose
+        run: |
+          docker-compose pull --quiet
+          docker-compose --project-name ${{ github.event.repository.name }}-${{ env.VERSION_TAG }} --profile proxied up -d
+      - name: Create GitHub deployment
+        if: success()
+        uses: chrnorm/deployment-action@releases/v1
+        with:
+          token: "${{ secrets.GITHUB_TOKEN }}"
+          target_url: "https://${{ secrets.DEPLOY_HOST_SNAPSHOT }}${{ env.BASE_HREF }}"
+          environment: ${{ env.VERSION_TAG }}
+          initial_status: success
+          ref: "${{ env.GITHUB_HEAD_REF }}"

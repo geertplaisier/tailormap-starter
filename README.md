@@ -46,3 +46,23 @@ environment variables (these are picked up from `.env` by referencing them in `d
 
 Note that the `admin` container must be started with the hostname it is deployed on configured separately, it does not use
 the `Host` HTTP header.
+
+## Running a full Tailormap stack
+
+See the `tailormap-viewer` project for a Docker Compose configuration with a full stack including a configuration database, backend api and administration interface.
+
+## Enabling continuous deployment with GitHub Actions
+
+Set these GitHub secrets:
+
+- `DEPLOY` to `true`
+- `HOSTNAME`: the hostname it will be deployed to
+- `API_PROXY_URL`: the URL where to proxy `/api/` from
+- `API_PROXY_HOST`: the hostname of the API proxy
+- `DOCKER_HOST_SNAPSHOT`: the Docker host (context)
+- `DOCKER_HOST_SNAPSHOT_SSH_CERT`: the SSH certificate to authenticate to the host
+- `DOCKER_HOST_SNAPSHOT_SSH_KEY`: private key for the certificate
+
+The GitHub action builds the container image on the GitHub Action runner with the name `ghcr.io/<owner>/<repo>` and pushes it to the GitHub container registry.
+It uses the repository name with `-snapshot` appended as the Docker Compose project name. Pull request deployments have `-pr-<number>`
+appended instead. These are also used for the container tags.

@@ -1,0 +1,46 @@
+name: Remove deployment
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    name: Remove Docker Compose deployment
+    # Do not use ubuntu-latest because of Docker compose version, see https://github.com/docker/compose/issues/7686
+    runs-on: ubuntu-18.04
+    env:
+      OWNER: ${{ github.repository_owner }}
+      NAME: ${{ github.event.repository.name }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set variables for PR
+        env:
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          echo "VERSION_TAG=pr-${PR}" >> $GITHUB_ENV
+      - name: Log in to GitHub container registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - uses: arwynfr/actions-docker-context@v2
+        with:
+          docker_host: ${{ secrets.DOCKER_HOST_SNAPSHOT }}
+          context_name: 'dev-server'
+          ssh_cert: ${{ secrets.DOCKER_HOST_SNAPSHOT_SSH_CERT }}
+          ssh_key: ${{ secrets.DOCKER_HOST_SNAPSHOT_SSH_KEY }}
+          use_context: true
+      - name: Remove pull request deployment and image
+        run: |
+          docker-compose --project-name ${{ env.NAME }}-${{ env.VERSION_TAG }} down --rmi all --remove-orphans
+      - name: Remove GitHub deployment and environment
+        uses: strumwolf/delete-deployment-environment@v2.0.1
+        with:
+          token: ${{ github.token }}
+          environment: ${{ env.VERSION_TAG }}
+      - name: Remove image from registry
+        uses: bots-house/ghcr-delete-image-action@v1.0.1
+        with:
+          token: ${{ secrets.GHCR_CLEANUP_PAT }}
+          owner: ${{ github.repository_owner }}
+          name: ${{ github.event.repository.name }}
+          tag: ${{ env.VERSION_TAG }}
+
