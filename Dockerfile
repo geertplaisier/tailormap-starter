@@ -17,10 +17,10 @@ FROM nginx:1.21.6-alpine
 
 COPY --from=builder /app/dist/app /usr/share/nginx/html
 
-COPY config/nginx.conf /etc/nginx/nginx.conf
-COPY config/api-proxy.conf.template /etc/nginx/templates/api-proxy.conf.template
-COPY config/admin-proxy.conf.template /etc/nginx/templates/admin-proxy.conf.template
-COPY config/enable-proxies.sh /docker-entrypoint.d/enable-proxies.sh
+COPY docker/nginx.conf /etc/nginx/nginx.conf
+COPY docker/api-proxy.conf.template /etc/nginx/templates/api-proxy.conf.template
+COPY docker/admin-proxy.conf.template /etc/nginx/templates/admin-proxy.conf.template
+COPY docker/enable-proxies.sh /docker-entrypoint.d/enable-proxies.sh
 
 EXPOSE 80
 
