@@ -38,3 +38,9 @@ services:
       - "traefik.http.routers.${NAME}-${VERSION_TAG:-snapshot}.tls=true"
       - "traefik.http.routers.${NAME}-${VERSION_TAG:-snapshot}.tls.certresolver=letsencrypt"
       - "traefik.http.services.${NAME}-${VERSION_TAG:-snapshot}.loadbalancer.server.port=80"
+    networks:
+      - ${TRAEFIK_NETWORK:-traefik}
+
+networks:
+  ${TRAEFIK_NETWORK:-traefik}:
+    external: true

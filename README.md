@@ -62,7 +62,13 @@ Set these GitHub secrets:
 - `DOCKER_HOST_SNAPSHOT`: the Docker host (context)
 - `DOCKER_HOST_SNAPSHOT_SSH_CERT`: the SSH certificate to authenticate to the host
 - `DOCKER_HOST_SNAPSHOT_SSH_KEY`: private key for the certificate
+- Optionally `TRAEFIK_NETWORK`: the existing Docker network where Traefik is in (`traefik` by default)
 
 The GitHub action builds the container image on the GitHub Action runner with the name `ghcr.io/<owner>/<repo>` and pushes it to the GitHub container registry.
 It uses the repository name with `-snapshot` appended as the Docker Compose project name. Pull request deployments have `-pr-<number>`
 appended instead. These are also used for the container tags.
+
+The hostname must be completely available for the CI to deploy to. The main branch will be deployed on `/` and pull
+requests on a sub path. You need to have Traefik running on the host configured for Docker and with a certificate 
+resolver named `letsencrypt`. This stack and Traefik must be in a shared Docker network so Traefik can reach the web
+container for reverse proxying. This can be configured with the `TRAEFIK_NETWORK` secret. 
