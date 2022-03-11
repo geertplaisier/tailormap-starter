@@ -10,7 +10,7 @@ Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app w
 
 ## Using a Tailormap backend
 
-When running a dev server, the tailormap-api is proxied. See [proxy.config.json](proxy.config.json). You can change the URL to connect to a different tailormap-api instance (you can also run one locally).
+When running a dev server, the tailormap-api is proxied. See [proxy.config.js](proxy.config.js). You can change the URL to connect to a different tailormap-api instance (you can also run one locally).
 
 ## Using Docker Compose
 
