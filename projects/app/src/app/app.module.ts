@@ -20,7 +20,7 @@ import { LogoOnMapComponent } from './logo-on-map/logo-on-map.component';
     SharedModule,
   ],
   providers: [],
-  bootstrap: [AppComponent]
+  bootstrap: [AppComponent],
 })
 export class AppModule {
   constructor(

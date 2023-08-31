@@ -4,6 +4,8 @@ This is a starter project to extend the Tailormap viewer with extra functionalit
 
 See [tailormap-viewer](https://github.com/B3Partners/tailormap-viewer/) for details.
 
+See [GETTING_STARTED](docs/GETTING_STARTED.md) to find an example for adding a component to Tailormap.
+
 ## Development server
 
 Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
